@@ -1,0 +1,126 @@
+.ts-view {
+  -webkit-box-sizing: border-box;
+          box-sizing: border-box;
+  font-size: 14px;
+}
+.ts-view *:after,
+.ts-view *:before {
+  -webkit-box-sizing: border-box;
+          box-sizing: border-box;
+}
+.ts-view > .ts-node {
+  padding-left: 0;
+}
+.ts-view .ts-nodes {
+  list-style: none;
+  padding-left: 20px;
+  overflow: hidden;
+  -webkit-transition: height 150ms ease-out, opacity 150ms ease-out;
+  -o-transition: height 150ms ease-out, opacity 150ms ease-out;
+  transition: height 150ms ease-out, opacity 150ms ease-out;
+}
+.ts-view .ts-node {
+  cursor: pointer;
+  overflow: hidden;
+}
+.ts-view .ts-node.ts-placeholder {
+  padding-left: 20px;
+}
+.ts-view .ts-switcher {
+  display: inline-block;
+  vertical-align: middle;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  position: relative;
+  -webkit-transition: -webkit-transform 150ms ease-out;
+  transition: -webkit-transform 150ms ease-out;
+  -o-transition: transform 150ms ease-out;
+  transition: transform 150ms ease-out;
+  transition: transform 150ms ease-out, -webkit-transform 150ms ease-out;
+}
+.ts-view .ts-switcher:before {
+  position: absolute;
+  top: 8px;
+  left: 6px;
+  display: block;
+  content: ' ';
+  border: 4px solid transparent;
+  border-top: 4px solid rgba(0, 0, 0, 0.4);
+  -webkit-transition: border-color 150ms;
+  -o-transition: border-color 150ms;
+  transition: border-color 150ms;
+}
+.ts-view .ts-switcher:hover:before {
+  border-top: 4px solid rgba(0, 0, 0, 0.65);
+}
+.ts-view .ts-switcher-closed {
+  -webkit-transform: rotate(-90deg);
+      -ms-transform: rotate(-90deg);
+          transform: rotate(-90deg);
+}
+.ts-view .ts-node__close > .ts-nodes {
+  height: 0;
+}
+.ts-view .ts-checkbox {
+  display: inline-block;
+  vertical-align: middle;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  position: relative;
+}
+.ts-view .ts-checkbox:before {
+  -webkit-transition: all 0.3s;
+  -o-transition: all 0.3s;
+  transition: all 0.3s;
+  cursor: pointer;
+  position: absolute;
+  top: 2px;
+  content: ' ';
+  display: block;
+  width: 16px;
+  height: 16px;
+  border: 1px solid #D9D9D9;
+  border-radius: 2px;
+}
+.ts-view .ts-checkbox:hover:before {
+  -webkit-box-shadow: 0 0 2px 1px #1890FF;
+          box-shadow: 0 0 2px 1px #1890FF;
+}
+.ts-view .ts-node__checked > .ts-checkbox:before {
+  background-color: #1890FF;
+  border-color: #1890FF;
+}
+.ts-view .ts-node__checked > .ts-checkbox:after {
+  position: absolute;
+  content: ' ';
+  display: block;
+  top: 4px;
+  left: 5px;
+  width: 5px;
+  height: 9px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  -webkit-transform: rotate(45deg);
+      -ms-transform: rotate(45deg);
+          transform: rotate(45deg);
+}
+.ts-view .ts-node__halfchecked > .ts-checkbox:before {
+  background-color: #1890FF;
+  border-color: #1890FF;
+}
+.ts-view .ts-node__halfchecked > .ts-checkbox:after {
+  position: absolute;
+  content: ' ';
+  display: block;
+  top: 9px;
+  left: 3px;
+  width: 10px;
+  height: 2px;
+  background-color: #fff;
+}
+.ts-view .ts-label {
+  vertical-align: middle;
+}

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+		<meta charset="utf-8">
+		<title>Action-based scenario editor!</title>
+		<script src="input.js"></script>
+		<script src="treestump/code.js"></script>
+		<link rel="stylesheet" href="treestump/style.css" />
+		<style>
+			.arrow-down:before {
+				position: absolute;
+				display: block;
+				content: ' ';
+				border: 50px solid transparent;
+				border-top: 50px solid rgba(0, 0, 0, 0.2);
+			}
+			.arrow-down:hover:before {
+				border-top: 50px solid rgba(0, 0, 0, 0.4);
+			}
+			.flip180 {
+				-webkit-transform: rotate(180deg);
+				-ms-transform: rotate(180deg);
+				transform: rotate(180deg);
+			}
+			.active:hover:before {
+				border-top: 50px solid rgba(24, 144, 255, 0.4);
+			}
+			.disabled:hover:before {
+				border-top: 50px solid rgba(0, 0, 0, 0.1);
+			}
+			.disabled:before {
+				border-top: 50px solid rgba(0, 0, 0, 0.1);
+			}
+			div, button, textarea {
+				color: #555555
+			}
+		</style>
+		<script>
+			const {createTSNode: createNode, createTSView: createView} = TreeStump;
+			function renderLine(ctx, x1,y1, x2, y2) {
+				ctx.beginPath();
+				ctx.moveTo(x1, y1);
+				ctx.lineTo(x2, y2);
+				ctx.stroke();
+			}
+			const drawCircle = function (x0, y0, diameter, drawPixel) {
+				let x = (diameter-1)/2;
+				let y = 0;
+				let radiusError = 1 - x;
+				while (x >= y) {
+					drawPixel(x + x0, y + y0);
+					drawPixel(y + x0, x + y0);
+					drawPixel(-x + x0, y + y0);
+					drawPixel(-y + x0, x + y0);
+					drawPixel(-x + x0, -y + y0);
+					drawPixel(-y + x0, -x + y0);
+					drawPixel(x + x0, -y + y0);
+					drawPixel(y + x0, -x + y0);
+					y++;
+			
+					if (radiusError < 0) {
+						radiusError += 2 * y + 1;
+					}
+					else {
+						x--;
+						radiusError+= 2 * (y - x + 1);
+					}
+				}
+			};
+			/**
+			 * after this code execution next & previous buttons must be disabled
+			 * if reached index limit (0 for previous, screens length for next)
+			 * For enabled state no addiotional class
+			 */
+			const updateButtonDisabilityState = (index, screens, previousButton, nextButton) => {
+				if (index === 0 && !previousButton.classList.contains('disabled')) {
+					previousButton.classList.add('disabled');
+				}
+				else if (index !== 0 && previousButton.classList.contains('disabled')) {
+					previousButton.classList.remove('disabled');
+				}
+				if (index === (screens.length - 1) && !nextButton.classList.contains('disabled')) {
+					nextButton.classList.add('disabled');	
+				}
+				else if (index !== (screens.length - 1) && nextButton.classList.contains('disabled')) {
+					nextButton.classList.remove('disabled');
+				}
+			}
+			const appendChildrenNodes = (root, childrenSpec) => {
+				if (childrenSpec) {
+					for (let i = 0; i < childrenSpec.length; i++) {
+						let node = createNode(childrenSpec[i].title, childrenSpec[i].data);
+						appendChildrenNodes(node, childrenSpec[i].children);
+						root.addChild(node);
+					}
+				}
+			}
+			const populateScreens = (screens, data) => {
+				while (screens.length) { screens.pop(); }
+				for (let i = 0; i < data.length; i++) {
+					let input = data[i];
+					const newScreen  = {};
+					newScreen.step = input.step;
+					newScreen.backgroundColor = input.backgroundColor;
+					newScreen.gridColor = input.gridColor;
+					let root = createNode(input.root.title, input.root.data);
+					appendChildrenNodes(root, input.root.children);
+					newScreen.root = root;
+					newScreen.text = input.text;
+					screens.push(newScreen);
+				}
+			}
+			window.onload = () => {
+				//each screen must have:
+				// * dimensions aka STEP aka pixelSize of one *pixel* on a grid
+				// * background line color
+				// * nodes for view and visualization
+				// * text info
+				const screens = [];
+				populateScreens(screens, data);
+				const view = createView('#treestump');
+				const canvas = document.querySelector('#canvas');
+				const ctx = canvas.getContext('2d');
+				const setBackground = (step, backgroundColor, gridColor) => {
+					const WIDTH = canvas.width;
+					const HEIGHT = canvas.height;
+					ctx.fillStyle = backgroundColor;
+					ctx.fillRect(0, 0, WIDTH, HEIGHT);
+					ctx.strokeStyle = gridColor;
+					
+					for (let i = 0; i <= WIDTH; i+=step) {
+						renderLine(ctx, i, 0, i, HEIGHT);
+					}
+					for (let i = 0; i <= HEIGHT; i+=step) {
+						renderLine(ctx, 0, i, WIDTH, i);
+					}
+				}
+				let index = 0;
+				const state = {};
+				state.step = screens[index].step;
+				let highlight = (x, y) => {
+					const STEP = state.step;
+					const delta = 2;
+					ctx.fillRect(Math.floor(x)*STEP+1-delta, Math.floor(y)*STEP+1-delta, STEP+delta*2, STEP+delta*2);
+					ctx.fillRect(Math.round(x)*STEP+1-delta, Math.round(y)*STEP+1-delta, STEP+delta*2, STEP+delta*2);
+				}
+				let plot1 = (x,y) => {
+					const STEP = state.step;
+					ctx.fillRect(Math.floor(x)*STEP+1, Math.floor(y)*STEP+1, STEP, STEP);
+					ctx.fillRect(Math.round(x)*STEP+1, Math.round(y)*STEP+1, STEP, STEP);
+				}
+				const renderNode = (node) => {
+					let data = node.getData();
+					let children = node.getChildren();
+					if (data) {
+						if (node.getCheckedState() === 2) {
+							ctx.fillStyle = 'cyan';
+							drawCircle(data.x, data.y, data.diameter, highlight)
+						}
+						ctx.fillStyle = data.color;
+						drawCircle(data.x, data.y, data.diameter, plot1)
+					}
+					if (children) {
+						children.forEach(renderNode)
+					}
+				}
+				const renderFromScratch = (root) => {
+					const screen = screens[index];
+					setBackground(screen.step, screen.backgroundColor, screen.gridColor);
+					renderNode(screen.root);
+				}
+				const previousButton = document.querySelector('#previous');
+				const indexDiv = document.querySelector('#index');
+				const nextButton = document.querySelector('#next');
+				const textArea = document.querySelector('#text');
+				textArea.addEventListener('input', function() {
+					screens[index].text=textArea.value;
+				}, false);
+				const handler = (e) => {
+					e.stopPropagation();
+					if (e.target.classList.contains('disabled')) {return;}
+					const button = e.target;
+					if (button.id === 'previous') {
+						index--;
+					}
+					else {
+						index++;
+					}
+					indexDiv.innerHTML = index+1 +'/' + screens.length;
+					state.step = screens[index].step;
+					view.setRoot(screens[index].root);
+					view.render();
+					renderFromScratch(screens[index].root);
+					textArea.value = screens[index].text || '';
+					button.classList.add('active');
+					setTimeout(()=>{
+						button.classList.remove('active');
+						
+						updateButtonDisabilityState(index, screens, previousButton, nextButton);
+					}, 70);
+					return false;
+				}
+				previousButton.addEventListener('click', handler);
+				nextButton.addEventListener('click', handler);
+				updateButtonDisabilityState(index, screens, previousButton, nextButton);
+				indexDiv.innerHTML = index+1 + '/' + screens.length;
+				view.setCheckboxEventListener(renderFromScratch);
+				view.setRoot(screens[index].root);
+				view.render();
+				textArea.value = screens[index].text || '';
+				renderFromScratch(screens[index].root);
+				const dataArea = document.querySelector('#data');
+				document.querySelector('#save').addEventListener('click',
+					() => {
+						let copy = [];
+						for (let i = 0; i < screens.length; i++) {
+							let serializeScreen = {
+								'step': screens[i].step,
+								'backgroundColor': screens[i].backgroundColor,
+								'gridColor': screens[i].gridColor,
+								root: screens[i].root.serialize(),
+								'text': screens[i].text
+							}
+							copy.push(serializeScreen);
+						}
+						dataArea.value = JSON.stringify(copy, null, 4);
+					}
+				);
+				document.querySelector('#load').addEventListener('click',
+					() => {
+						let data = undefined;
+						try {
+							data = JSON.parse(dataArea.value);
+						}
+						catch (e) {
+							alert('Parsing failed!');
+							throw e;
+						}
+						
+						index = 0;
+						updateButtonDisabilityState(index, screens, previousButton, nextButton);
+						indexDiv.innerHTML = index+1 + '/' + screens.length;
+						populateScreens(screens, data);
+						state.step = screens[index].step;
+						view.setRoot(screens[index].root);
+						view.render();
+						textArea.value = screens[index].text || '';
+						renderFromScratch(screens[index].root);
+					}
+				);
+				document.querySelector('#clear').addEventListener('click',
+					() => {
+						dataArea.value = '';
+					}
+				);
+			}
+		</script>
+	</head>
+	<body>
+		<div style="display: flex; align-items: stretch; max-height: 451px;">
+			<div id="slide_navigation" style="min-width:150px; position: relative;">
+				<div id="previous" class="arrow-down flip180" style="position: absolute; left:125px; top: 150px;"></div>
+				<div id="index" style="position: absolute; left:0; top: 175px; width: 150px; height: 50px; font-size: 50px; text-align: center"></div>
+				<div id="next" class="arrow-down" style="position: absolute;  left:25px; top: 250px;"></div>
+			</div>
+			<div id="treestump" style="min-width:200px; padding-right: 25px;"></div>
+			<div>
+				<canvas height="451px" width="451px" id="canvas"></canvas>
+			</div>
+			<textarea id="text" cols="55" rows="20" style="margin-left: 25px; padding: 5px; font-size: 17px;"></textarea>
+		</div>
+		<div style="display: flex; align-items: stretch; max-height: 251px; margin-top: 25px;">
+			<div style="min-width:150px; position: relative; margin-left: 15px;">
+				<button id="save" style="position: absolute; left:0; top: 25px; width: 150px; height: 50px; font-size: 30px; padding-bottom: 10px;">save</button>
+				<button id="load" style="position: absolute; left:0; top: 85px; width: 150px; height: 50px; font-size: 30px; padding-bottom: 10px;">load</button>
+				<button id="clear" style="position: absolute; left:0; top: 145px; width: 150px; height: 50px; font-size: 30px; padding-bottom: 10px;">clear</button>
+			</div>
+			<textarea id="data" cols="117" rows="9" style="margin-left: 25px; padding: 5px; font-size: 17px;"></textarea>
+		</div>
+	</body>
+</html>
